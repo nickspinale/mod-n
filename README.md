@@ -1,2 +1,2 @@
 # bigword
-Fixed size large words using GHC's new type-level naturals
+Fixed size bit vectors using GHC's new type-level naturals

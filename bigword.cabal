@@ -1,8 +1,8 @@
 name:                bigword
 version:             0.1.0.0
--- synopsis:            
+synopsis:            Fixed-size bit vectors using type-level naturals
 -- description:         
-homepage:            https://github.om/nickspinale/bigword.git
+homepage:            https://github.com/nickspinale/bigword.git
 license:             MIT
 license-file:        LICENSE
 author:              Nick Spinale
