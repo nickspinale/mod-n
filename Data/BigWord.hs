@@ -27,14 +27,20 @@ natValInt = fromInteger . natVal
 -- plus negative values make wrapping easier.
 -- For casting (between BigWord types), use fromIntegral
 newtype BigWord (n :: Nat) = BigWord { unwrap :: Integer }
-    deriving (Eq, Data, Ord, Read, Real, Show, Ix, PrintfArg)
+    deriving (Eq, Data, Ord, Real, Ix, PrintfArg)
+
+instance KnownNat n => Read (BigWord n) where
+    readsPrec = ((.).(.)) (map $ \(a, str) -> (fromInteger a, str)) readsPrec
+
+instance Show (BigWord n) where
+    show = show . unwrap
 
 (>+<) :: forall n m. (KnownNat n, KnownNat m, KnownNat (n + m)) => BigWord n -> BigWord m -> BigWord (n + m)
 (BigWord x) >+< (BigWord y) = fromInteger $ x + shift y (natValInt (Proxy :: Proxy m))
 
 instance KnownNat n => Bounded (BigWord n) where
     minBound = 0
-    maxBound = bit (natValInt (Proxy :: Proxy n)) - 1
+    maxBound = BigWord (bit (natValInt (Proxy :: Proxy n)) - 1)
 
 -- Can't just derive because it need to get the default for bounded types
 instance KnownNat n => Enum (BigWord n) where
@@ -58,7 +64,7 @@ instance KnownNat n => Bits (BigWord n) where
         (.&.) = ((.).(.)) BigWord ((.&.) `on` unwrap)
         (.|.) = ((.).(.)) BigWord ((.|.) `on` unwrap)
         xor   = ((.).(.)) BigWord (xor   `on` unwrap)
-        complement x = maxBound - x
+        complement = fromInteger . complement . unwrap
         shift (BigWord x) i = BigWord $ shift x i `mod` bit (natValInt (Proxy :: Proxy n))
         rotate x i = let nat = natValInt (Proxy :: Proxy n)
                          dist = mod i nat
