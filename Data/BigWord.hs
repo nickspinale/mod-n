@@ -1,9 +1,14 @@
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeOperators #-}
 
 ---------------------------------------------------------
@@ -35,6 +40,7 @@ module Data.BigWord
 
     ) where
 
+import Control.Applicative
 import Data.Bits
 import Data.Data
 import Data.Function
@@ -161,6 +167,21 @@ split (W z) = (fromInteger z, fromInteger $ shiftR z (natValInt (Proxy :: Proxy 
 -- >    parseW160 = accumulate $ (fromIntegral :: Word8 -> W 8) <$> anyWord8
 accumulate :: (Applicative f, KnownNat m, KnownNat n) => f (W n) -> f (W m)
 accumulate = takeAux mapAccumR
+
+class (KnownNat n, KnownNat m) => Aux (n :: Nat) (m :: Nat) where
+    acc :: forall f. (Applicative f) => f (W n) -> f (W m)
+
+instance (KnownNat n) => Aux n n where
+    acc = id
+
+instance (KnownNat m, Aux n m', (n + m') ~ m) => Aux n m where
+    acc f = liftA2 (>+<) f (acc f)
+
+-- instance Aux 0 where
+--     acc _ = pure 0
+
+-- instance (1 <= n) => Aux n where
+--     acc f = liftA2 (>+<) f (acc f)
 
 -- | Same as @'accumulate'@, but gathers in the opposite order
 accumulate' :: (Applicative f, KnownNat m, KnownNat n) => f (W n) -> f (W m)
