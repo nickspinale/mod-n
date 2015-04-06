@@ -115,6 +115,7 @@ instance KnownNat n => FiniteBits (W n) where
 (W x) >+< (W y) = fromInteger $ x + shift y (natValInt (Proxy :: Proxy m))
 
 -- | The inverse of @(>+<)@
+--
 -- >    forall a b. split (a >+< b) == (a, b)
 split :: forall n m. (KnownNat m, KnownNat n, KnownNat (m + n)) => W (m + n) -> (W m, W n)
 split (W z) = (fromInteger z, fromInteger $ shiftR z (natValInt (Proxy :: Proxy m)))
