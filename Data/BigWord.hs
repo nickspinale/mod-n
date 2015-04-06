@@ -114,7 +114,7 @@ instance KnownNat n => FiniteBits (W n) where
 (>+<) :: forall n m. (KnownNat m, KnownNat n, KnownNat (m + n)) => W m -> W n -> W (m + n)
 (W x) >+< (W y) = fromInteger $ x + shift y (natValInt (Proxy :: Proxy m))
 
--- | The inverse of @(>+<)@
+-- | The inverse of @>+<@
 --
 -- >    forall a b. split (a >+< b) == (a, b)
 split :: forall n m. (KnownNat m, KnownNat n, KnownNat (m + n)) => W (m + n) -> (W m, W n)
@@ -126,6 +126,9 @@ split (W z) = (fromInteger z, fromInteger $ shiftR z (natValInt (Proxy :: Proxy 
 --
 -- Example usage, parsing a little endian 160-bit word:
 --
+-- >    import Data.Attoparsec.ByteString
+-- >
+-- >    parseW160 :: Parser (W 610)
 -- >    parseW160 = accumulate $ (fromIntegral :: Word8 -> W 8) <$> anyWord8
 accumulate :: (Applicative f, KnownNat m, KnownNat n) => f (W n) -> f (W m)
 accumulate = takeAux mapAccumR
@@ -140,7 +143,10 @@ accumulate' = takeAux mapAccumL
 --
 -- Example usage, building a little endian 160-bit word:
 --
--- >    buildW160 = chunks' $ word8 . (fromIntegral :: W 8 -> Word8)
+-- >    import Data.ByteString.Builder
+-- >
+-- >    buildW160 :: W 160 -> Builder
+-- >    buildW160 = chunks $ word8 . (fromIntegral :: W 8 -> Word8)
 chunks :: forall a m n. (Monoid a, KnownNat m, KnownNat n) => (W n -> a) -> W m -> a
 chunks = (.) getDual . chunks' . (.) Dual
 
