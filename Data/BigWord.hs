@@ -16,7 +16,7 @@
 -- Stability   : provisional
 -- Portability : partable
 --
--- Fixed-size bit vectors using type-level naturals.
+-- Fixed size bit vectors using type-level naturals.
 ---------------------------------------------------------
 
 module Data.BigWord
@@ -114,15 +114,17 @@ instance KnownNat n => FiniteBits (W n) where
 (>+<) :: forall n m. (KnownNat m, KnownNat n, KnownNat (m + n)) => W m -> W n -> W (m + n)
 (W x) >+< (W y) = fromInteger $ x + shift y (natValInt (Proxy :: Proxy m))
 
--- | The inverse of @>+<@
+-- | The inverse of @'>+<'@
 --
 -- >    forall a b. split (a >+< b) == (a, b)
 split :: forall n m. (KnownNat m, KnownNat n, KnownNat (m + n)) => W (m + n) -> (W m, W n)
 split (W z) = (fromInteger z, fromInteger $ shiftR z (natValInt (Proxy :: Proxy m)))
 
 -- | Transforms an applicative action that results in a @'W' n@ to one that results in a @'W' m@.
--- @'W' n@'s are accumulated with significance increasing from left to right
--- If m is not a multiple of n, leftover bits are truncated.
+--
+-- @'W' n@'s are accumulated with significance increasing from left to right.
+--
+-- If @n@ does not divide @m@, leftover bits are truncated.
 --
 -- Example usage, parsing a little endian 160-bit word:
 --
@@ -133,13 +135,15 @@ split (W z) = (fromInteger z, fromInteger $ shiftR z (natValInt (Proxy :: Proxy 
 accumulate :: (Applicative f, KnownNat m, KnownNat n) => f (W n) -> f (W m)
 accumulate = takeAux mapAccumR
 
--- | Same as @accumulate@, but gathers in the opposite order
+-- | Same as @'accumulate'@, but gathers in the opposite order
 accumulate' :: (Applicative f, KnownNat m, KnownNat n) => f (W n) -> f (W m)
 accumulate' = takeAux mapAccumL
 
 -- | Break a @'W' m@ into its constituent @'W' n@'s, and combine using the supplied monoid
+--
 -- Chunks are appended with significance increasing from left to right.
--- If n does not divide m, missing bits are treated as 0.
+--
+-- If @n@ does not divide @m@, missing bits are set to 0.
 --
 -- Example usage, building a little endian 160-bit word:
 --
@@ -150,7 +154,7 @@ accumulate' = takeAux mapAccumL
 chunks :: forall a m n. (Monoid a, KnownNat m, KnownNat n) => (W n -> a) -> W m -> a
 chunks = (.) getDual . chunks' . (.) Dual
 
--- | Same as @chunks@, just appends in opposite order
+-- | Same as @'chunks'@, but appends in opposite order
 chunks' :: forall a m n. (Monoid a, KnownNat m, KnownNat n) => (W n -> a) -> W m -> a
 chunks' f = go (quot' m n) . toInteger
   where
@@ -188,7 +192,6 @@ quot' m n = let (q, r) = m `quotRem` n
               in case r of 0 -> q
                            _ -> q + 1
 
--- Just to make things cleaner:
 natValInt :: KnownNat n => proxy n -> Int
 natValInt = fromInteger . natVal
 
