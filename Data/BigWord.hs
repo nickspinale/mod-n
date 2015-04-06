@@ -19,10 +19,6 @@ import Data.Proxy
 import GHC.TypeLits
 import Text.Printf
 
--- Just to make things cleaner:
-natValInt :: KnownNat n => proxy n -> Int
-natValInt = fromInteger . natVal
-
 -- For casting (between BigWord types), use fromIntegral
 newtype BigWord (n :: Nat) = BigWord { getBigWord :: Integer }
     deriving (Eq, Data, Ord, Real, Ix, PrintfArg)
@@ -78,3 +74,17 @@ instance KnownNat n => Bits (BigWord n) where
 
 instance KnownNat n => FiniteBits (BigWord n) where
     finiteBitSize = const $ natValInt (Proxy :: Proxy n)
+
+takeBE :: (Applicative f, KnownNat n) => f Word8 -> f (BigWord n)
+take
+
+takeLE :: (Applicative f, KnownNat n) => f Word8 -> f (BigWord n)
+
+giveBE :: (Monoid m, KnownNat n) => (Word8 -> m) -> BigWord n -> m
+
+giveLE :: (Monoid m, KnownNat n) => (Word8 -> m) -> BigWord n -> m
+
+-- Just to make things cleaner:
+natValInt :: KnownNat n => proxy n -> Int
+natValInt = fromInteger . natVal
+
