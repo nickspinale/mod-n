@@ -44,6 +44,7 @@ import Data.Monoid
 import Data.Traversable
 import GHC.TypeLits
 import Text.Printf
+import System.Random hiding (split)
 
 -- | Type representing a sequence of @n@ bits, or a non-negative integer smaller than @2^n@.
 newtype W (n :: Nat) = W { getW :: Integer }
@@ -105,6 +106,11 @@ instance KnownNat n => Bits (W n) where
 
 instance KnownNat n => FiniteBits (W n) where
     finiteBitSize = const $ natValInt (Proxy :: Proxy n)
+
+instance KnownNat n => Random (W n) where
+    randomR (a, b) g = (fromInteger r, g')
+      where (r, g') = randomR (toInteger a, toInteger b) g
+    random = randomR (minBound, maxBound)
 
 -------------------------------
 -- EXPORTS

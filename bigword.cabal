@@ -19,5 +19,6 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     Data.BigWord
-  build-depends:       base >= 4.8 && <4.9
+  build-depends:       base >= 4.8 && <4.9,
+                       random
   default-language:    Haskell2010
