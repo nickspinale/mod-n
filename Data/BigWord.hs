@@ -23,17 +23,15 @@ import Text.Printf
 natValInt :: KnownNat n => proxy n -> Int
 natValInt = fromInteger . natVal
 
--- Integer seems more trustworthy than numeric.natural(base depends on it...),
--- plus negative values make wrapping easier.
 -- For casting (between BigWord types), use fromIntegral
-newtype BigWord (n :: Nat) = BigWord { unwrap :: Integer }
+newtype BigWord (n :: Nat) = BigWord { getBigWord :: Integer }
     deriving (Eq, Data, Ord, Real, Ix, PrintfArg)
 
 instance KnownNat n => Read (BigWord n) where
     readsPrec = ((.).(.)) (map $ \(a, str) -> (fromInteger a, str)) readsPrec
 
 instance Show (BigWord n) where
-    show = show . unwrap
+    show = show . getBigWord
 
 (>+<) :: forall n m. (KnownNat n, KnownNat m, KnownNat (n + m)) => BigWord n -> BigWord m -> BigWord (n + m)
 (BigWord x) >+< (BigWord y) = fromInteger $ x + shift y (natValInt (Proxy :: Proxy m))
@@ -45,26 +43,26 @@ instance KnownNat n => Bounded (BigWord n) where
 -- Can't just derive because it need to get the default for bounded types
 instance KnownNat n => Enum (BigWord n) where
     toEnum = BigWord . toEnum
-    fromEnum = fromEnum . unwrap
+    fromEnum = fromEnum . getBigWord
 
 instance KnownNat n => Integral (BigWord n) where
-    toInteger = unwrap
-    quotRem x y = case (quotRem `on` unwrap) x y of (q, r) -> (BigWord q, BigWord r)
+    toInteger = getBigWord
+    quotRem x y = case (quotRem `on` getBigWord) x y of (q, r) -> (BigWord q, BigWord r)
 
 instance KnownNat n => Num (BigWord n) where
     fromInteger = BigWord . flip mod (bit (natValInt (Proxy :: Proxy n)))
-    (+) = ((.).(.)) fromInteger ((+) `on` unwrap)
-    (*) = ((.).(.)) fromInteger ((*) `on` unwrap)
+    (+) = ((.).(.)) fromInteger ((+) `on` getBigWord)
+    (*) = ((.).(.)) fromInteger ((*) `on` getBigWord)
     abs = id
     signum 0 = 0
     signum _ = 1
     negate = (+ 1) . complement
 
 instance KnownNat n => Bits (BigWord n) where
-        (.&.) = ((.).(.)) BigWord ((.&.) `on` unwrap)
-        (.|.) = ((.).(.)) BigWord ((.|.) `on` unwrap)
-        xor   = ((.).(.)) BigWord (xor   `on` unwrap)
-        complement = fromInteger . complement . unwrap
+        (.&.) = ((.).(.)) BigWord ((.&.) `on` getBigWord)
+        (.|.) = ((.).(.)) BigWord ((.|.) `on` getBigWord)
+        xor   = ((.).(.)) BigWord (xor   `on` getBigWord)
+        complement = fromInteger . complement . getBigWord
         shift (BigWord x) i = BigWord $ shift x i `mod` bit (natValInt (Proxy :: Proxy n))
         rotate x i = let nat = natValInt (Proxy :: Proxy n)
                          dist = mod i nat
@@ -72,11 +70,11 @@ instance KnownNat n => Bits (BigWord n) where
         bitSizeMaybe = Just . finiteBitSize
         bitSize = finiteBitSize
         isSigned = const False
-        testBit = testBit . unwrap
+        testBit = testBit . getBigWord
         bit i = if i < natValInt (Proxy :: Proxy n)
                 then BigWord (bit i)
                 else 0
-        popCount = popCount . unwrap
+        popCount = popCount . getBigWord
 
 instance KnownNat n => FiniteBits (BigWord n) where
     finiteBitSize = const $ natValInt (Proxy :: Proxy n)
