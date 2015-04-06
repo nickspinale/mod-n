@@ -111,12 +111,33 @@ instance KnownNat n => FiniteBits (W n) where
 -------------------------------
 
 -- | Appends two @'W'@'s, treating the second's bits as more significant.
+--
+-- Example usage:
+--
+-- >    import Network.Socket
+-- >
+-- >    fromHostAddress6 :: HostAddress6 -> W 128
+-- >    fromHostAddress6 (a, b, c, d) = f a >+< f b >+< f c >+< f d
+-- >      where
+-- >        f = fromIntegral :: Word32 -> W 32
 (>+<) :: forall n m. (KnownNat m, KnownNat n, KnownNat (m + n)) => W m -> W n -> W (m + n)
 (W x) >+< (W y) = fromInteger $ x + shift y (natValInt (Proxy :: Proxy m))
 
 -- | The inverse of @'>+<'@
 --
 -- >    forall a b. split (a >+< b) == (a, b)
+--
+-- Example usage:
+--
+-- >    import Network.Socket
+-- >
+-- >    toHostAddress6 :: W 128 -> HostAddress6
+-- >    toHostAddress6 w =  (f a, f b, f c, f d)
+-- >      where
+-- >        f = fromIntegral :: W 32 -> Word32
+-- >        (a, x) = split w
+-- >        (b, y) = split x
+-- >        (c, d) = split y
 split :: forall n m. (KnownNat m, KnownNat n, KnownNat (m + n)) => W (m + n) -> (W m, W n)
 split (W z) = (fromInteger z, fromInteger $ shiftR z (natValInt (Proxy :: Proxy m)))
 
