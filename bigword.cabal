@@ -7,6 +7,7 @@ bug-reports:         https://github.com/nickspinale/bigword/issues
 stability:           provisional
 license:             MIT
 license-file:        LICENSE
+copyright:           Copyright (c) 2015 Nick Spinale
 author:              Nick Spinale
 maintainer:          Nick Spinale <spinalen@carleton.edu>
 category:            Data
@@ -14,12 +15,9 @@ build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >= 1.10
 build-type:          Simple
-extra-source-files:
-    README
+extra-source-files:  README.md
 
 library
   exposed-modules:     Data.BigWord
-  other-extensions:    DataKinds, KindSignatures
-  build-depends:       base >= 4.8 && <4.9,
-                       transformers >= 0.1.0.0
+  build-depends:       base >= 4.8 && <4.9
   default-language:    Haskell2010

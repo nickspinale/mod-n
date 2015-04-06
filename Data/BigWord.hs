@@ -6,6 +6,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
+---------------------------------------------------------
+-- |
+-- Module      : Data.BigWord
+-- Copyright   : (c) 2015 Nick Spinale
+-- License     : MIT
+--
+-- Maintainer  : Nick Spinale <spinalen@carleton.edu>
+-- Stability   : provisional
+-- Portability : partable
+--
+-- Fixed-size bit vectors using type-level naturals.
+---------------------------------------------------------
+
 module Data.BigWord
     ( BigWord
     , (>+<)
@@ -16,7 +29,6 @@ module Data.BigWord
     ) where
 
 import Control.Monad
-import Control.Monad.Trans.State.Lazy
 import Data.Bits
 import Data.Data
 import Data.Function
@@ -28,18 +40,15 @@ import Data.Word (Word8)
 import GHC.TypeLits
 import Text.Printf
 
--- For casting (between BigWord types), use fromIntegral
+-- | Type representing a sequence of n bits, or a non-negative integer smaller than 2^n
 newtype BigWord (n :: Nat) = BigWord { getBigWord :: Integer }
-    deriving (Eq, Data, Ord, Real, Ix, PrintfArg)
+    deriving (Eq, Ord, Real, Ix, PrintfArg, Data, Typeable)
 
 instance KnownNat n => Read (BigWord n) where
     readsPrec = ((.).(.)) (map $ \(a, str) -> (fromInteger a, str)) readsPrec
 
 instance Show (BigWord n) where
     show = show . getBigWord
-
-(>+<) :: forall n m. (KnownNat n, KnownNat m, KnownNat (n + m)) => BigWord n -> BigWord m -> BigWord (n + m)
-(BigWord x) >+< (BigWord y) = fromInteger $ x + shift y (natValInt (Proxy :: Proxy m))
 
 instance KnownNat n => Bounded (BigWord n) where
     minBound = 0
@@ -84,9 +93,19 @@ instance KnownNat n => Bits (BigWord n) where
 instance KnownNat n => FiniteBits (BigWord n) where
     finiteBitSize = const $ natValInt (Proxy :: Proxy n)
 
+-- | Appends two BigWords, treating the second's bits as more significant.
+(>+<) :: forall n m. (KnownNat n, KnownNat m, KnownNat (n + m)) => BigWord n -> BigWord m -> BigWord (n + m)
+(BigWord x) >+< (BigWord y) = fromInteger $ x + shift y (natValInt (Proxy :: Proxy m))
+
+-- | Transforms an action that results in an octet to one that results in a BigWord of the specified size.
+-- Octets resulting from the input action occur in network-byte order.
+-- If n is not a multiple of 8, leftover bits are truncated.
 takeBE :: (Applicative f, KnownNat n) => f Word8 -> f (BigWord n)
 takeBE = takeAux mapAccumL
 
+-- | Transforms an action that results in an octet to one that results in a BigWord of the specified size.
+-- Octets resulting from the input action occur in little-endian order.
+-- If n is not a multiple of 8, leftover bits are truncated.
 takeLE :: (Applicative f, KnownNat n) => f Word8 -> f (BigWord n)
 takeLE = takeAux mapAccumR
 
@@ -106,9 +125,16 @@ takeAux f = fmap ( fromInteger
           . sequenceA
           . replicate (bytes (Proxy :: Proxy n))
 
+-- | Break a BigWord into its constituent octets, and combine then as a monoid in network-byte order.
+-- If n is not a multiple of 8, missing bits are treated as 0.
 giveBE :: forall m n. (Monoid m, KnownNat n) => (Word8 -> m) -> BigWord n -> m
-giveBE f = foldMap f . evalState (replicateM (bytes (Proxy :: Proxy n)) (state $ \n -> (fromIntegral n, shiftL n 8)))
+giveBE f = go (bytes (Proxy :: Proxy n)) . toInteger
+  where
+    go 0 _ = mempty
+    go i n = f (fromInteger n) <> go (i - 1) (shiftR n 8)
 
+-- | Break a BigWord into its constituent octets, and combine then as a monoid in little-endian order.
+-- If n is not a multiple of 8, missing bits are treated as 0.
 giveLE :: (Monoid m, KnownNat n) => (Word8 -> m) -> BigWord n -> m
 giveLE = (.) getDual . giveBE . (.) Dual
 
