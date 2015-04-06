@@ -1,4 +1,5 @@
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -33,10 +34,7 @@ module Data.BigWord
     , split
 
     -- * Utility functions
-    , accumulate
-    , accumulate'
-    , chunks
-    , chunks'
+    , (:|:)(..)
 
     ) where
 
@@ -48,6 +46,7 @@ import Data.Ix
 import Data.Proxy
 import Data.Monoid
 import Data.Traversable
+import Data.Type.Equality
 import GHC.TypeLits
 import Text.Printf
 import System.Random hiding (split)
@@ -119,7 +118,7 @@ instance KnownNat n => Random (W n) where
     random = randomR (minBound, maxBound)
 
 -------------------------------
--- EXPORTS
+-- OPERATIONS
 -------------------------------
 
 -- | Appends two @'W'@'s, treating the second's bits as more significant.
@@ -153,92 +152,29 @@ instance KnownNat n => Random (W n) where
 split :: forall n m. (KnownNat m, KnownNat n, KnownNat (m + n)) => W (m + n) -> (W m, W n)
 split (W z) = (fromInteger z, fromInteger $ shiftR z (natValInt (Proxy :: Proxy m)))
 
--- | Transforms an applicative action that results in a @'W' n@ to one that results in a @'W' m@.
---
--- @'W' n@'s are accumulated with significance increasing from left to right.
---
--- If @n@ does not divide @m@, leftover bits are truncated.
---
--- Example usage, parsing a little endian 160-bit word:
---
--- >    import Data.Attoparsec.ByteString
--- >
--- >    parseW160 :: Parser (W 610)
--- >    parseW160 = accumulate $ (fromIntegral :: Word8 -> W 8) <$> anyWord8
-accumulate :: (Applicative f, KnownNat m, KnownNat n) => f (W n) -> f (W m)
-accumulate = takeAux mapAccumR
+-------------------------------
+-- :|:
+-------------------------------
 
-class (KnownNat n, KnownNat m) => Aux (n :: Nat) (m :: Nat) where
-    acc :: forall f. (Applicative f) => f (W n) -> f (W m)
+class (KnownNat d, KnownNat n) => d :|: n where
+    assemble :: forall f. Applicative f
+             => ( forall a b. (KnownNat a, KnownNat b, KnownNat (a + b))
+                => W a
+                -> W b
+                -> W (a + b)
+                )
+             -> f (W d)
+             -> f (W n)
 
-instance (KnownNat n) => Aux n n where
-    acc = id
+instance KnownNat n => n :|: n where
+    assemble c f = f
 
-instance (KnownNat m, Aux n m', (n + m') ~ m) => Aux n m where
-    acc f = liftA2 (>+<) f (acc f)
-
--- instance Aux 0 where
---     acc _ = pure 0
-
--- instance (1 <= n) => Aux n where
---     acc f = liftA2 (>+<) f (acc f)
-
--- | Same as @'accumulate'@, but gathers in the opposite order
-accumulate' :: (Applicative f, KnownNat m, KnownNat n) => f (W n) -> f (W m)
-accumulate' = takeAux mapAccumL
-
--- | Break a @'W' m@ into its constituent @'W' n@'s, and combine using the supplied monoid
---
--- Chunks are appended with significance increasing from left to right.
---
--- If @n@ does not divide @m@, missing bits are set to 0.
---
--- Example usage, building a little endian 160-bit word:
---
--- >    import Data.ByteString.Builder
--- >
--- >    buildW160 :: W 160 -> Builder
--- >    buildW160 = chunks $ word8 . (fromIntegral :: W 8 -> Word8)
-chunks :: forall a m n. (Monoid a, KnownNat m, KnownNat n) => (W n -> a) -> W m -> a
-chunks = (.) getDual . chunks' . (.) Dual
-
--- | Same as @'chunks'@, but appends in opposite order
-chunks' :: forall a m n. (Monoid a, KnownNat m, KnownNat n) => (W n -> a) -> W m -> a
-chunks' f = go (quot' m n) . toInteger
-  where
-    go 0 _ = mempty
-    go i x = f (fromInteger x) <> go (i - 1) (shiftR x n)
-    m = natValInt (Proxy :: Proxy m)
-    n = natValInt (Proxy :: Proxy n)
+instance (KnownNat n, d :|: n', (d + n') ~ n) => d :|: n where
+    assemble c f = liftA2 c f (assemble c f)
 
 -------------------------------
 -- HELPERS
 -------------------------------
-
-takeAux :: forall f n m. (Applicative f, KnownNat m, KnownNat n) =>
-    (  (Integer -> W n -> (Integer, Integer))
-    -> Integer
-    -> [W n]
-    -> (Integer, [Integer])
-    ) -> f (W n) -> f (W m)
-
-takeAux f = fmap ( fromInteger
-                 . getSum
-                 . foldMap Sum
-                 . snd
-                 . f (\a b -> (a * 2^n, a * toInteger b)) 1
-                 )
-          . sequenceA
-          . replicate (quot' m n)
-  where
-    m = natValInt (Proxy :: Proxy m)
-    n = natValInt (Proxy :: Proxy n)
-
-
-quot' :: Int -> Int -> Int
-quot' m n = let (q, r) = m `quotRem` n
-              in case r of 0 -> q
-                           _ -> q + 1
 
 natValInt :: KnownNat n => proxy n -> Int
 natValInt = fromInteger . natVal
