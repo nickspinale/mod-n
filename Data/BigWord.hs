@@ -9,13 +9,22 @@
 module Data.BigWord
     ( BigWord
     , (>+<)
+    , takeBE
+    , takeLE
+    , giveBE
+    , giveLE
     ) where
 
+import Control.Monad
+import Control.Monad.Trans.State.Lazy
 import Data.Bits
 import Data.Data
 import Data.Function
 import Data.Ix
+import Data.List
 import Data.Proxy
+import Data.Monoid
+import Data.Word (Word8)
 import GHC.TypeLits
 import Text.Printf
 
@@ -76,13 +85,38 @@ instance KnownNat n => FiniteBits (BigWord n) where
     finiteBitSize = const $ natValInt (Proxy :: Proxy n)
 
 takeBE :: (Applicative f, KnownNat n) => f Word8 -> f (BigWord n)
-take
+takeBE = takeAux mapAccumL
 
 takeLE :: (Applicative f, KnownNat n) => f Word8 -> f (BigWord n)
+takeLE = takeAux mapAccumR
 
-giveBE :: (Monoid m, KnownNat n) => (Word8 -> m) -> BigWord n -> m
+takeAux :: forall f n. (Applicative f, KnownNat n) =>
+    (  (Integer -> Word8 -> (Integer, Integer))
+    -> Integer
+    -> [Word8]
+    -> (Integer, [Integer])
+    ) -> f Word8 -> f (BigWord n)
+
+takeAux f = fmap ( fromInteger
+                 . getSum
+                 . foldMap Sum
+                 . snd
+                 . f (\a b -> (a * 256, a * toInteger b)) 1
+                 )
+          . sequenceA
+          . replicate (bytes (Proxy :: Proxy n))
+
+giveBE :: forall m n. (Monoid m, KnownNat n) => (Word8 -> m) -> BigWord n -> m
+giveBE f = foldMap f . evalState (replicateM (bytes (Proxy :: Proxy n)) (state $ \n -> (fromIntegral n, shiftL n 8)))
 
 giveLE :: (Monoid m, KnownNat n) => (Word8 -> m) -> BigWord n -> m
+giveLE = (.) getDual . giveBE . (.) Dual
+
+
+bytes :: KnownNat n => Proxy n -> Int
+bytes proxy = let (q, r) = natValInt proxy `quotRem` 8
+              in case r of 0 -> q
+                           _ -> q + 1
 
 -- Just to make things cleaner:
 natValInt :: KnownNat n => proxy n -> Int
