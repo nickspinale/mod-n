@@ -1,2 +1,2 @@
-# bigword
-Fixed size bit vectors using GHC's new type-level naturals
+# mod-n
+The integers under a modulus.

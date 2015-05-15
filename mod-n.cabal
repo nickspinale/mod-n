@@ -1,16 +1,16 @@
-name:                bigword
+name:                mod-n
 version:             0.1.0.0
-synopsis:            Fixed-size bit vectors using type-level naturals
-description:         Fixed-size bit vectors using type-level naturals
-homepage:            https://github.com/nickspinale/bigword
-bug-reports:         https://github.com/nickspinale/bigword/issues
+synopsis:            The integers with a modulus
+description:         The integers with a modulus
+homepage:            https://github.com/nickspinale/mod-n
+bug-reports:         https://github.com/nickspinale/mod-n/issues
 stability:           provisional
 license:             MIT
 license-file:        LICENSE
 copyright:           Copyright (c) 2015 Nick Spinale
 author:              Nick Spinale
 maintainer:          Nick Spinale <spinalen@carleton.edu>
-category:            Data
+category:            Numeric
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >= 1.10
@@ -18,6 +18,6 @@ build-type:          Simple
 extra-source-files:  README.md
 
 library
-  exposed-modules:     Data.BigWord
+  exposed-modules:     Numeric.Mod
   build-depends:       base >= 4.8 && <4.9
   default-language:    Haskell2010
