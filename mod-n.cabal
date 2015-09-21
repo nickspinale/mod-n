@@ -1,23 +1,26 @@
 name:                mod-n
 version:             0.1.0.0
-synopsis:            The integers with a modulus
-description:         The integers with a modulus
-homepage:            https://github.com/nickspinale/mod-n
-bug-reports:         https://github.com/nickspinale/mod-n/issues
-stability:           provisional
+-- synopsis:            
+-- description:         
 license:             MIT
 license-file:        LICENSE
-copyright:           Copyright (c) 2015 Nick Spinale
 author:              Nick Spinale
-maintainer:          Nick Spinale <spinalen@carleton.edu>
+maintainer:          spinalen@carleton.edu
+-- copyright:           
 category:            Numeric
 build-type:          Simple
 extra-source-files:  README.md
-cabal-version:       >= 1.10
-build-type:          Simple
-extra-source-files:  README.md
+cabal-version:       >=1.10
 
 library
   exposed-modules:     Numeric.Mod
-  build-depends:       base >= 4.8 && <4.9
+  -- other-modules:       
+  other-extensions:      DataKinds
+                       , DeriveDataTypeable
+                       , GeneralizedNewtypeDeriving
+                       , KindSignatures
+                       , MagicHash
+                       , ScopedTypeVariables
+  build-depends:       base >=4.8 && <4.9
+  hs-source-dirs:      src
   default-language:    Haskell2010
