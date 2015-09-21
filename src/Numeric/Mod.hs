@@ -39,7 +39,7 @@ import Text.Printf
 
 -- | Type representing an equivalence class under the integers mod n
 newtype Mod (n :: Nat) = Mod { integer :: Integer }
-    deriving (Eq, Ord, Real, Ix, PrintfArg, Data, Typeable)
+    deriving (Eq, Enum, Integral, Ord, Show, Real, Ix, PrintfArg, Data, Typeable)
 
 -------------------------------
 -- INSTANCES
@@ -48,20 +48,9 @@ newtype Mod (n :: Nat) = Mod { integer :: Integer }
 instance KnownNat n => Read (Mod n) where
     readsPrec = ((.).(.)) (map $ \(a, str) -> (fromInteger a, str)) readsPrec
 
-instance Show (Mod n) where
-    show = show . integer
-
 instance KnownNat n => Bounded (Mod n) where
     minBound = 0
     maxBound = Mod (natVal' (proxy# :: Proxy# n) - 1)
-
-instance KnownNat n => Enum (Mod n) where
-    toEnum = Mod . toEnum
-    fromEnum = fromEnum . integer
-
-instance KnownNat n => Integral (Mod n) where
-    toInteger = integer
-    quotRem x y = case (quotRem `on` integer) x y of (q, r) -> (Mod q, Mod r)
 
 instance KnownNat n => Num (Mod n) where
     fromInteger = Mod . flip mod (natVal' (proxy# :: Proxy# n))
