@@ -9,7 +9,7 @@
 -- | Integers under a modulus
 module Numeric.Mod
 
--- | Type representing an equivalence class under the integers mod n
+-- | Type representing an equivalence class under the integers modulo n
 data Mod (n :: Nat)
 instance Data.Typeable.Internal.Typeable n => Data.Data.Data (Numeric.Mod.Mod n)
 instance Text.Printf.PrintfArg (Numeric.Mod.Mod n)

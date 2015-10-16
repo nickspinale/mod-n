@@ -24,20 +24,14 @@ module Numeric.Mod
       Mod
     ) where
 
-import Control.Applicative
-import Data.Bits
 import Data.Data
 import Data.Function
 import Data.Ix
-import Data.Proxy
-import Data.Monoid
-import Data.Traversable
-import Data.Type.Equality
 import GHC.Exts
 import GHC.TypeLits
 import Text.Printf
 
--- | Type representing an equivalence class under the integers mod n
+-- | Type representing an equivalence class under the integers modulo n
 newtype Mod (n :: Nat) = Mod { integer :: Integer }
     deriving (Eq, Enum, Integral, Ord, Real, Ix, PrintfArg, Data, Typeable)
 
@@ -62,4 +56,4 @@ instance KnownNat n => Num (Mod n) where
     abs = id
     signum 0 = 0
     signum _ = 1
-    negate = fromInteger . negate . toInteger
+    negate = fromInteger . negate . integer
