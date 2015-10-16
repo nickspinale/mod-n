@@ -45,10 +45,10 @@ newtype Mod (n :: Nat) = Mod { integer :: Integer }
 -- INSTANCES
 -------------------------------
 
-instance KnownNat n => Show (Mod n) where
+instance Show (Mod n) where
     show = show . integer
 
-instance KnownNat n => Read (Mod n) where
+instance Read (Mod n) where
     readsPrec = ((.).(.)) (map $ \(a, str) -> (Mod a, str)) readsPrec
 
 instance KnownNat n => Bounded (Mod n) where
